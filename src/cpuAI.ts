@@ -144,17 +144,29 @@ export function cpuMove(board: Board): [number, number] {
     if (board[0][y][x] === 0) return [x, y];
   }
 
-  // ④ 中央優先（Z=1,2）
-  const centers: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 2]];
-  for (const z of [1, 2]) {
-    for (const [x, y] of centers) {
-      if (board[z][y][x] === 0 && !isDangerousMove(board, x, y, 2)) {
-        return [x, y];
+ // ④ 中央優先（Z=1,2）と Z=2,3 の優先ポイントを統合
+const prioritizedZones: [number, number, number][] = [
+  [1, 1, 1], [1, 2, 1], [2, 1, 1], [2, 2, 1], // Z=1 の中央
+  [1, 1, 2], [1, 2, 2], [2, 1, 2], [2, 2, 2], // Z=2 の中央
+  [0, 1, 2], [0, 2, 2], [1, 0, 2], [1, 3, 2], // Z=2の外周
+  [2, 0, 2], [2, 3, 2], [3, 1, 2], [3, 2, 2], // Z=2の外周
+];
+
+for (const [x, y, z] of prioritizedZones) {
+  if (board[z][y][x] === 0 && !isDangerousMove(board, x, y, 2)) {
+    return [x, y];
+  }
+}
+
+    // ⑤ 他に優先度が高そうなｚ軸が4行角5つの上がりにつながるものが多い。終盤しか置けないため優先度は低いが気にしておいても良いと思うところ
+    const Z4counerdemension: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
+    for (const z of [3]) {
+      for (const [x, y] of Z4counerdemension) {
+        if (board[z][y][x] === 0 && !isDangerousMove(board, x, y, 2)) {
+          return [x, y];
+        }
       }
     }
-  }
-  
-
   // ⑤ リーチ作成（自駒2つ）
   const reachCandidates = findAllThreats(board, 2, 2);
   for (const [x, y] of reachCandidates) {
