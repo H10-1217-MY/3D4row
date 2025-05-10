@@ -162,18 +162,13 @@ export function cpuMove(board: Board): [number, number] {
   if (pattern_blockx) return pattern_blockx;
   if (pattern_blocky) return pattern_blocky;
 
-// 🌟 ダブルリーチを防ぐ
-const criticalSpots = findPotentialDoubleThreats(board, 1);
-for (const [x, y] of criticalSpots) {
-  if (!isDangerousMove(board, x, y, 2)) {
-    return [x, y];
-  }
-}
+
   // ③ 四隅優先（Z=0）
   const corners: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
   for (const [x, y] of corners) {
     if (board[0][y][x] === 0) return [x, y];
   }
+
 
  // ④ 中央優先（Z=1,2）と Z=2,3 の優先ポイントを統合
 const prioritizedZones: [number, number, number][] = [
