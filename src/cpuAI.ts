@@ -119,6 +119,29 @@ function detectWinPatternPlane(
   return null;
 }
 
+function findPotentialDoubleThreats(board: Board, opponent: number): [number, number][] {
+  const criticalSpots: [number, number][] = [];
+
+  for (let z = 0; z < 4; z++) {
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < 4; x++) {
+        if (board[z][y][x] === 0) {
+          // 仮にここに相手が置いたらどうなるか
+          const tempBoard = board.map(layer => layer.map(row => [...row]));
+          tempBoard[z][y][x] = opponent;
+
+          // リーチが2つ以上できるかチェック
+          const threats = findAllThreats(tempBoard, opponent, 2);
+          if (threats.length >= 2) {
+            criticalSpots.push([x, y]);
+          }
+        }
+      }
+    }
+  }
+
+  return criticalSpots;
+}
 
 export function cpuMove(board: Board): [number, number] {
   // ① 勝ちを優先
@@ -138,6 +161,14 @@ export function cpuMove(board: Board): [number, number] {
   const pattern_blocky = detectWinPatternPlane(board, 1, 'x');
   if (pattern_blockx) return pattern_blockx;
   if (pattern_blocky) return pattern_blocky;
+
+// 🌟 ダブルリーチを防ぐ
+const criticalSpots = findPotentialDoubleThreats(board, 1);
+for (const [x, y] of criticalSpots) {
+  if (!isDangerousMove(board, x, y, 2)) {
+    return [x, y];
+  }
+}
   // ③ 四隅優先（Z=0）
   const corners: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
   for (const [x, y] of corners) {
@@ -167,6 +198,17 @@ for (const [x, y, z] of prioritizedZones) {
         }
       }
     }
+      // ⑥ リーチ阻害（敵2つ）
+// ⑥ リーチ阻害（敵2つ）
+const blockCandidates1 = findAllThreats(board, 1, 2);
+if (blockCandidates1.length >= 2) {
+  // ダブルリーチ防止優先
+  for (const [x, y] of blockCandidates1) {
+    if (!isDangerousMove(board, x, y, 2)) {
+      return [x, y];
+    }
+  }
+}
   // ⑤ リーチ作成（自駒2つ）
   const reachCandidates = findAllThreats(board, 2, 2);
   for (const [x, y] of reachCandidates) {
@@ -176,25 +218,7 @@ for (const [x, y, z] of prioritizedZones) {
 }
 
 
-  // ⑥ リーチ阻害（敵2つ）
-  const blockCandidates = findAllThreats(board, 1, 2);
-  for (const [x, y] of blockCandidates) {
-  if (!isDangerousMove(board, x, y, 2)) {
-    return [x, y];  // 安全なリーチ阻止手
-  }
-}
 
-
-  
-  // ⑦ ランダム（Z=3に空きがあるところ）
-  for (let tries = 0; tries < 100; tries++) {
-  const x = Math.floor(Math.random() * 4);
-  const y = Math.floor(Math.random() * 4);
-
-  if (board[3][y][x] === 0 && !isDangerousMove(board, x, y,2)) {
-    return [x, y];
-  }
-}
 
 // どうしても見つからない場合は妥協して置く
 while (true) {
