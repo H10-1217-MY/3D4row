@@ -84,7 +84,7 @@ function detectWinPatternPlane(
   // 共通の「相手に作らせたくないパターン」定義
   // X-Z: [x, z], Y-Z: [y, z]
   const patterns: [number, number][][] = [
-    [[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]],
+    [[0, 0], [1, 1], [1, 2], [0, 2], [2, 2]],
     [[3, 0], [2, 1], [2, 2], [1, 2], [3, 2]],
     [[0, 0], [1, 1], [1, 2], [2, 1], [2, 2], [3, 0]],
   ];
@@ -162,14 +162,24 @@ export function cpuMove(board: Board): [number, number] {
   if (pattern_blockx) return pattern_blockx;
   if (pattern_blocky) return pattern_blocky;
 
-
   // ③ 四隅優先（Z=0）
-  const corners: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
-  for (const [x, y] of corners) {
-    if (board[0][y][x] === 0) return [x, y];
+const corners: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
+for (const [x, y] of corners) {
+  if (board[0][y][x] === 0 && isPlaceable(board, x, y, 0) && !isDangerousMove(board, x, y, 2)) {
+    return [x, y];
   }
+}
 
-
+// ⑤ リーチ作成（自駒2つ）
+const reachCandidates = findAllThreats(board, 2, 2);
+for (const [x, y] of reachCandidates) {
+  // 👇 追加
+  for (let z = 0; z < 4; z++) {
+    if (isPlaceable(board, x, y, z) && !isDangerousMove(board, x, y, 2)) {
+      return [x, y];
+    }
+  }
+}
 
  // ④ 中央優先（Z=1,2）と Z=2,3 の優先ポイントを統合
 const prioritizedZones: [number, number, number][] = [
@@ -178,23 +188,29 @@ const prioritizedZones: [number, number, number][] = [
   [0, 1, 2], [0, 2, 2], [1, 0, 2], [1, 3, 2], // Z=2の外周
   [2, 0, 2], [2, 3, 2], [3, 1, 2], [3, 2, 2], // Z=2の外周
 ];
-
 for (const [x, y, z] of prioritizedZones) {
-  if (board[z][y][x] === 0 && !isDangerousMove(board, x, y, 2)) {
+  // 👇 追加: 下に空きがないことを確認する
+  if (board[z][y][x] === 0 && isPlaceable(board, x, y, z) && !isDangerousMove(board, x, y, 2)) {
     return [x, y];
   }
 }
 
+
+
     // ⑤ 他に優先度が高そうなｚ軸が4行角5つの上がりにつながるものが多い。終盤しか置けないため優先度は低いが気にしておいても良いと思うところ
-    const Z4counerdemension: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
-    for (const z of [3]) {
-      for (const [x, y] of Z4counerdemension) {
-        if (board[z][y][x] === 0 && !isDangerousMove(board, x, y, 2)) {
-          return [x, y];
-        }
-      }
+    // ⑤ 他に優先度が高そうなZ=3の外周
+const Z4counterdimension: [number, number][] = [[0, 0], [0, 3], [3, 0], [3, 3]];
+for (const z of [3]) {
+  for (const [x, y] of Z4counterdimension) {
+    if (board[z][y][x] === 0 && isPlaceable(board, x, y, z) && !isDangerousMove(board, x, y, 2)) {
+      return [x, y];
     }
-      // ⑥ リーチ阻害（敵2つ）
+  }
+}
+
+
+
+
 // ⑥ リーチ阻害（敵2つ）
 const blockCandidates1 = findAllThreats(board, 1, 2);
 if (blockCandidates1.length >= 2) {
@@ -205,6 +221,7 @@ if (blockCandidates1.length >= 2) {
     }
   }
 }
+  
 
 // 🌟 ダブルリーチを防ぐ
 const criticalSpots = findPotentialDoubleThreats(board, 1);
@@ -213,16 +230,6 @@ for (const [x, y] of criticalSpots) {
     return [x, y];
   }
 }
-
-  // ⑤ リーチ作成（自駒2つ）
-  const reachCandidates = findAllThreats(board, 2, 2);
-  for (const [x, y] of reachCandidates) {
-  if (!isDangerousMove(board, x, y, 2)) {
-    return [x, y];  // 安全なリーチ作成手が見つかったら採用
-  }
-}
-
-
 
 
 // どうしても見つからない場合は妥協して置く
