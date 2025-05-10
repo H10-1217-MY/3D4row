@@ -170,6 +170,7 @@ export function cpuMove(board: Board): [number, number] {
   }
 
 
+
  // ④ 中央優先（Z=1,2）と Z=2,3 の優先ポイントを統合
 const prioritizedZones: [number, number, number][] = [
   [1, 1, 1], [1, 2, 1], [2, 1, 1], [2, 2, 1], // Z=1 の中央
@@ -204,6 +205,15 @@ if (blockCandidates1.length >= 2) {
     }
   }
 }
+
+// 🌟 ダブルリーチを防ぐ
+const criticalSpots = findPotentialDoubleThreats(board, 1);
+for (const [x, y] of criticalSpots) {
+  if (!isDangerousMove(board, x, y, 2)) {
+    return [x, y];
+  }
+}
+
   // ⑤ リーチ作成（自駒2つ）
   const reachCandidates = findAllThreats(board, 2, 2);
   for (const [x, y] of reachCandidates) {
